@@ -3,7 +3,7 @@
         // Variables de conexión
         private $host = 'localhost';
         private $user = 'root';
-        private $password = '';
+        private $password = 'geminis';
         private $namebase = 'alvanitunes';
         
         // Conexion DB

@@ -4,16 +4,15 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 $app = new \Slim\App;
 
-//Obtener todos los clientes
+//get All Categories
 $app->get('/categories', function(Request $request, Response $response){
-    $consulta = "SELECT * FROM at_categoria_music";
     try{
         // Instanciar la base de datos
         $db = new db();
         // Conexión
         $db = $db->conectar();
-        $ejecutar = $db->query($consulta);
-        $albums = $ejecutar->fetchAll(PDO::FETCH_OBJ);
+        $queryStage = $db->query("CALL getCategories()");
+        $albums = $queryStage->fetchAll(PDO::FETCH_OBJ);
         $db = null;
         return $response->withJson($albums);
 
@@ -24,34 +23,28 @@ $app->get('/categories', function(Request $request, Response $response){
 
 $app->get('/categories/{id}', function(Request $request, Response $response){
     $id = $request->getAttribute('id');
-    $consulta = "SELECT * FROM at_categoria_music WHERE idm='$id'";
     try{
         // Instanciar la base de datos
         $db = new db();
         // Conexión
         $db = $db->conectar();
-        $ejecutar = $db->query($consulta);
-        $album = $ejecutar->fetchAll(PDO::FETCH_OBJ);
-        $db = null;
-        return $response->withJson($album);
-
-    } catch(PDOException $e){
-        echo '{"error": {"text": '.$e->getMessage().'}';
-    }
-});
-
-$app->get('/categories/{id}/albums', function(Request $request, Response $response){
-    $id = $request->getAttribute('id');
-    $consulta = "SELECT * FROM at_album WHERE categorias='$id'";
-    try{
-        // Instanciar la base de datos
-        $db = new db();
-        // Conexión
-        $db = $db->conectar();
-        $ejecutar = $db->query($consulta);
-        $album = $ejecutar->fetchAll(PDO::FETCH_OBJ);
-        $db = null;
-        return $response->withJson($album);
+        $stageCategory = $db->query("CALL getCategory('$id')");
+        $category = $stageCategory->fetchAll(PDO::FETCH_OBJ);
+        if (!empty($category)) {
+            $stageCategory->nextRowset();
+            // get All Albums
+            $stageAlbumsbyID = $db->query("CALL getAlbumsbyCategory('$id')");
+            $allAlbums = $stageAlbumsbyID->fetchAll(PDO::FETCH_OBJ);
+            if ($allAlbums) {
+                $category[0]->albums = $allAlbums;
+            }
+            $db = null;
+            return $response->withJson($category);
+        }else{
+            $response->getBody()->write("La categoria $id no existe actualmente."); 
+            return $response->withStatus(404);
+        }
+       
 
     } catch(PDOException $e){
         echo '{"error": {"text": '.$e->getMessage().'}';
